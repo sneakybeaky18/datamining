@@ -34,11 +34,22 @@ for el in soup.find_all('div', attrs={'class': 'label__price_new'}):
     list_new_price.append(el.text)
 dict['new_price'] = list_new_price
 
+
 list_old_price = [] #получаем старую цену
 for el in soup.find_all('div', attrs={'class': 'label__price_old'}):
     list_old_price.append(el.text)
 dict['old_price'] = list_old_price
 
 
+url = 'https://magnit.ru/promo/?geo=moskva' #получаем ссылки, тайм код 1:19:43
+list_of_links = [] #получаем ссылку
+catalog = soup.find('div', attrs={'class': "сatalogue__main"})
+products = catalog.findChildren('a', attrs={'class': 'card-sale'})
+for product in products:
+    if len(product.attrs.get('class')) > 2 or product.attrs.get('href')[0] != '/':
+        continue
+    product_url = product.attrs.get("href")
+    list_of_links.append(product_url)
+dict['url'] = list_of_links
 
 print(dict)
