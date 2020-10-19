@@ -4,8 +4,7 @@ from urllib.parse import urlparse
 from pymongo import MongoClient
 import re
 
-mongo_client = MongoClient('mongodb://localhost:27017')
-db = mongo_client['parse_10']
+
 
 dict = {
     'url': '',
@@ -28,30 +27,66 @@ def get_soup(url):
 
 soup = get_soup('https://magnit.ru/promo/')
 
-list_new_price = [] #получаем новую цену
-for el in soup.find_all('div', attrs={'class': 'label__price_new'}):
-    el_filter_1 = el.text.replace('\n','')
-    el_filter_2 = el_filter_1.replace('%','')
-    el_filter_3 = el_filter_2.replace('−', '')
-    list_new_price.append(int(el_filter_3)/100)
-dict['new_price'] = list_new_price
+def parse():
+    list_new_price = [] #получаем новую цену
+    for el in soup.find_all('div', attrs={'class': 'label__price_new'}):
+        el_filter_1 = el.text.replace('\n','')
+        el_filter_2 = el_filter_1.replace('%','')
+        el_filter_3 = el_filter_2.replace('−', '')
+        list_new_price.append(int(el_filter_3)/100)
+    dict['new_price'] = list_new_price
 
 
-list_old_price = [] #получаем старую цену
-for el in soup.find_all('div', attrs={'class': 'label__price_old'}):
-    list_old_price.append(int(el.text.replace('\n',''))/100)
-dict['old_price'] = list_old_price
+    list_old_price = [] #получаем старую цену
+    for el in soup.find_all('div', attrs={'class': 'label__price_old'}):
+        list_old_price.append(int(el.text.replace('\n',''))/100)
+    dict['old_price'] = list_old_price
+
+    list_promo_name = [] #получаем promo_name
+    for el in soup.find_all('div', attrs={'class': 'card-sale__header'}):
+        list_promo_name.append(el.text)
+    dict['promo_name'] = list_promo_name
+
+    list_product_name = [] #получаем product name
+    for el in soup.find_all('div', attrs={'class': 'card-sale__title'}):
+        list_product_name.append(el.text)
+    dict['product_name'] = list_product_name
+
+    date_from_list = [] #получаем date from
+    for el in soup.find_all('div', attrs={'class': 'card-sale__date'}):
+        date_from_list.append(el.text)
+    dict['date_from'] = date_from_list
+
+    date_to_list = [] #получаем date to
+    for el in soup.find_all('div', attrs={'class': 'card-sale__date'}):
+        date_to_list.append(el.text)
+    dict['date_to'] = date_to_list
+
+    image_url_list = [] #получаем image_url #доделать как нибудь
+    catalog = soup.find('div', attrs={'class': "сatalogue__main"})
+    products = catalog.findChildren('img', attrs={'class': 'lazy loaded'})
+    for product in products:
+        product_url = product.attrs.get("src")
+        image_url_list.append(product_url)
+    dict['image_url'] = image_url_list
+
+    url = 'https://magnit.ru/promo/?geo=moskva' #получаем ссылки, тайм код 1:19:43
+    list_of_links = [] #получаем ссылку
+    catalog = soup.find('div', attrs={'class': "сatalogue__main"})
+    products = catalog.findChildren('a', attrs={'class': 'card-sale'})
+    for product in products:
+        if len(product.attrs.get('class')) > 2 or product.attrs.get('href')[0] != '/':
+            continue
+        product_url = product.attrs.get("href")
+        list_of_links.append(product_url)
+    dict['url'] = list_of_links
+
+    return dict
+
+print(parse())
 
 
-url = 'https://magnit.ru/promo/?geo=moskva' #получаем ссылки, тайм код 1:19:43
-list_of_links = [] #получаем ссылку
-catalog = soup.find('div', attrs={'class': "сatalogue__main"})
-products = catalog.findChildren('a', attrs={'class': 'card-sale'})
-for product in products:
-    if len(product.attrs.get('class')) > 2 or product.attrs.get('href')[0] != '/':
-        continue
-    product_url = product.attrs.get("href")
-    list_of_links.append(product_url)
-dict['url'] = list_of_links
-
-print(dict)
+mongo_client = MongoClient('mongodb://localhost:27017')
+db = mongo_client['parse_10']
+collection = db['magnit']
+collection.insert_one(parse())
