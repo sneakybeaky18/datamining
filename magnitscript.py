@@ -2,8 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse
 from pymongo import MongoClient
-
-
+import re
 
 mongo_client = MongoClient('mongodb://localhost:27017')
 db = mongo_client['parse_10']
@@ -31,13 +30,16 @@ soup = get_soup('https://magnit.ru/promo/')
 
 list_new_price = [] #получаем новую цену
 for el in soup.find_all('div', attrs={'class': 'label__price_new'}):
-    list_new_price.append(el.text)
+    el_filter_1 = el.text.replace('\n','')
+    el_filter_2 = el_filter_1.replace('%','')
+    el_filter_3 = el_filter_2.replace('−', '')
+    list_new_price.append(int(el_filter_3)/100)
 dict['new_price'] = list_new_price
 
 
 list_old_price = [] #получаем старую цену
 for el in soup.find_all('div', attrs={'class': 'label__price_old'}):
-    list_old_price.append(el.text)
+    list_old_price.append(int(el.text.replace('\n',''))/100)
 dict['old_price'] = list_old_price
 
 
