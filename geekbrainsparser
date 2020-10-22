@@ -74,4 +74,3 @@ pg = Parser_GeekBrains("https://geekbrains.ru/posts", 60)
 print('hi')
 print(pg.get_all_pages())
 print(pg.parse())
-
