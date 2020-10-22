@@ -7,25 +7,39 @@ from pymongo import MongoClient
 
 class Parser_GeekBrains:
 
-    def __init__(self, start_url):
+    def __init__(self, start_url, all_pages):
+        self.all_pages = all_pages
         self.start_url = start_url
         mongo_client = MongoClient('mongodb://localhost:27017')
         self.db = mongo_client['geek_brains_parser']
 
-    def get_response(self):
-        self.response = requests.get(self.start_url)
-        return self.response
-
-    def get_soup(self):
-        self.soup = BeautifulSoup(self.get_response().text, 'lxml')
+    def get_soup(self, url):
+        self.response = requests.get(url)
+        self.soup = BeautifulSoup(self.response.text, 'lxml')
         return self.soup
 
+    def get_all_pages(self):
+        list_of_links = []
+        list_of_pages = []
+        for el in range(self.all_pages+1):
+            list_of_pages.append(str(el))
+        while len(list_of_pages) != len(list_of_links):
+            for el in list_of_pages:
+                list_of_links.append('https://geekbrains.ru/posts?page=' + el)
+        return list_of_links
 
-    def save_to(self, product_data):
-        collection = self.db['geek_brains']
-        collection.insert_one(product_data)
+    def get_next_page(self, url):
+        list_of_pages = []
+        self.next_page = self.get_soup(url).find_all('a', attrs={'rel': 'next'})
+        for el in self.next_page:
+            href = 'https://geekbrains.ru/' + el.get('href')
+            list_of_pages.append(href)
+        # self.next_page_href = 'https://geekbrains.ru/' + self.next_page_href
+        return list_of_pages
+
 
     def parse(self):
+
         geek_brains_post_structure = {
             'material_url': '',
             'header': '',
@@ -40,28 +54,24 @@ class Parser_GeekBrains:
             'text_comment': '',
         }
 
-        def uuid_gen():
-            uuidGen = uuid.uuid4()
-            return uuidGen
-
-        self.material_without_url = self.get_soup().find_all('a', attrs={'class': 'post-item__title h3 search_text'})
         list_of_url = []
-        for self.material_with_url in self.material_without_url:
-            self.material_with_url = self.material_with_url.get('href')
-            # geek_brains_post_structure['material_url'] = self.material_with_url
-            list_of_url.append(self.material_with_url)
-            # self.save_to(geek_brains_post_structure)
+        for el in self.get_all_pages():
+            self.material_without_url = self.get_soup(el).find_all('a', attrs={'class': 'post-item__title h3 search_text'})
 
-        for el in list_of_url:
-            geek_brains_post_structure['material_url'] = el
-            self.save_to(geek_brains_post_structure)
+            for material_with_url in self.material_without_url:
+                material_with_url = material_with_url.get('href')
+                geek_brains_post_structure['material_url'] = material_with_url
+                list_of_url.append(material_with_url)
 
-        return geek_brains_post_structure
+        return list_of_url
 
+    def save_to(self, product_data):
+        collection = self.db['geek_brains']
+        collection.insert_one(product_data)
 
-    
+pg = Parser_GeekBrains("https://geekbrains.ru/posts", 60)
 
-pg = Parser_GeekBrains("https://geekbrains.ru/posts")
 print('hi')
+print(pg.get_all_pages())
 print(pg.parse())
-print(pg.get_response())
+
