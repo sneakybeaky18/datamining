@@ -54,6 +54,7 @@ class Parser_GeekBrains:
     
 
 pg = Parser_GeekBrains("https://geekbrains.ru/posts")
+print('hi')
 print(pg.parse())
 print(pg.get_response())
 print(pg.dict_name_generator())
